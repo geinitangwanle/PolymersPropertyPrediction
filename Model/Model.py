@@ -17,18 +17,18 @@ from torch_geometric.nn import avg_pool, global_mean_pool
 class KGNNModel(torch.nn.Module):
     def __init__(
         self,
-        layers_in_conv=3,
-        channels=64,
-        use_nodetype_coeffs=True,
-        num_node_types=9,
-        num_edge_types=4,
+        layers_in_conv=3, # 每个卷积块中图卷积层的个数为3，代表消息传递的次数
+        channels=64, # 图卷积层中的隐藏维度
+        use_nodetype_coeffs=True, 
+        num_node_types=9, # 节点类型个数
+        num_edge_types=4, # 边类型个数
         use_jumping_knowledge=False,
         embedding_size=64,
         use_bias_for_update=True,
         use_dropout=True,
-        num_convs=3,
+        num_convs=3, # 模型中的卷积块个数为3
         num_fc_layers=3,
-        neighbors_aggr='add',
+        neighbors_aggr='add', # 节点特征聚合方式
         dropout_p=0.1,
         num_targets=1,
     ):
