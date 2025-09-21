@@ -55,7 +55,7 @@ class GatedGCNModel(torch.nn.Module):
             use_nodetype_coeffs=False,
             use_jumping_knowledge=False,
             use_bias_for_update=True,
-            node_in_dim=4,
+            node_in_dim=channels,
         )
 
         self.mggc3 = SimpleGatedGraphConv(
@@ -68,7 +68,7 @@ class GatedGCNModel(torch.nn.Module):
             use_nodetype_coeffs=False,
             use_jumping_knowledge=False,
             use_bias_for_update=True,
-            node_in_dim=4,
+            node_in_dim=channels,
         )
 
         #set2set全局池化层，使用了LSTM
@@ -101,16 +101,11 @@ class GatedGCNModel(torch.nn.Module):
     # 用于构建线性层的功能函数
     def make_fc_layers(self, num_fc_layers, num_targets):
         fc_layers = []
-        in_channels = 192  # for set2set + cat
-        out_channels = None  # in_channels // 2
+        in_channels = 3 * self.channels
         for i in range(num_fc_layers):
-            if i != 0:
-                in_channels = out_channels
-            if i == num_fc_layers - 1:
-                out_channels = num_targets
-            else:
-                out_channels = in_channels // 2
-            fc_layers += [nn.Linear(in_channels, out_channels)]
+            out_channels = num_targets if i == num_fc_layers - 1 else max(in_channels // 2, 8)
+            fc_layers.append(nn.Linear(in_channels, out_channels))
+            in_channels = out_channels
         return fc_layers
 
     # 前向传播部分
@@ -129,7 +124,7 @@ class GatedGCNModel(torch.nn.Module):
         x = self.batch_norms[2](x)
         x = F.relu(x)
 
-        x_1 = self.set2set_1(x, batch)
+        x_1 = self.set2set(x, batch)
 
         x_2 = global_mean_pool(x, batch) # 使用全局池化
 
