@@ -44,7 +44,7 @@ class GatedGCNModel(torch.nn.Module):
         self.geom = GeometryFeaturizer(K=geom_K, r_min=0.0, r_max=geom_rmax,concat_original=concat_original_edge)
 
         # 原始 edge_attr 4 维 + RBF K 维
-        edge_in_dim = 4 + geom_K if concat_original_edge else geom_K
+        edge_in_dim = 4 + geom_K if concat_original_edge else 4
 
 
         self.mggc1 = SimpleGatedGraphConv(
