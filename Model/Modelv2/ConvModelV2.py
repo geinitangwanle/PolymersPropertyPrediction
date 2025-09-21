@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import torch_geometric as pyg
-from .SimpleGatedGraphConv import SimpleGatedGraphConv
+from .SimpleGatedGraphConvV2 import SimpleGatedGraphConv
 from torch_geometric.nn import global_mean_pool
 from .geom_feats import GeometryFeaturizer
 
