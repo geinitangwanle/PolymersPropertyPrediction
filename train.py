@@ -143,6 +143,9 @@ model = GatedGCNModel(
     neighbors_aggr='add',
     dropout_p=0.1,
     num_targets=1,
+    geom_K=16,          # <--- 新增：RBF 基数
+    geom_rmax=4.0,      # <--- 新增：RBF 最大半径
+    concat_original_edge=True,  # 与原 4 维边特征拼接
 ).to(device)
 
 criterion = nn.MSELoss()
