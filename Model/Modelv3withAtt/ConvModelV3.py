@@ -1,11 +1,12 @@
-# 使用了pos信息计算了原子间距离的RBF
 import torch
 from torch import nn
 import torch.nn.functional as F
 import torch_geometric as pyg
-from .SimpleGatedGraphConvV2 import SimpleGatedGraphConv
+from .SimpleGatedGraphConvV3 import SimpleGatedGraphConv
 from torch_geometric.nn import global_mean_pool
 from .geom_feats import GeometryFeaturizer
+from .gemnet_edge_update import GemNetEdgeUpdate
+from torch_geometric.nn import GATv2Conv # 直接调用GATv2Conv
 
 class GatedGCNModel(torch.nn.Module):
     def __init__(
@@ -27,7 +28,9 @@ class GatedGCNModel(torch.nn.Module):
         # =========================== 新增接口 =====================
         geom_K=16, # RBF探针数量
         geom_rmax=4.0, # 设置化学键的最大键长
-        concat_original_edge=True, # 得到新的边特征后，是否与原始边特征拼接
+        concat_original_edge=True, # 得到新的边特征后，是否与原始边特征拼接（是否使用pos信息）
+        gem_out=32,
+        heads=4, # GAT多头注意力机制的头数
     ):
         super(GatedGCNModel, self).__init__()
 
@@ -42,10 +45,13 @@ class GatedGCNModel(torch.nn.Module):
         self.concat_original_edge = concat_original_edge
 
         # === 几何特征编码器 ===
-        self.geom = GeometryFeaturizer(K=geom_K, r_min=0.0, r_max=geom_rmax,concat_original=concat_original_edge)
+        self.geom = GeometryFeaturizer(K=geom_K, r_min=0.0, r_max=geom_rmax,concat_original=concat_original_edge) # 边RBF
 
-        # 原始 edge_attr 4 维 + RBF K 维
-        edge_in_dim = 4 + geom_K if concat_original_edge else 4
+        self.gem_edge = GemNetEdgeUpdate(K_r=geom_K, r_min=0.0, r_max=geom_rmax, # 角度
+                                         K_a=8, mlp_hidden=64, out_dim=gem_out, aggr='add')
+
+        # 原始4 + 距离K + 角增强 gem_out
+        edge_in_dim = (4 + geom_K + gem_out) if concat_original_edge else 4
 
 
         self.mggc1 = SimpleGatedGraphConv(
@@ -61,18 +67,18 @@ class GatedGCNModel(torch.nn.Module):
             node_in_dim=4,
         )
 
-        self.mggc2 = SimpleGatedGraphConv(
-            out_channels=channels,
-            num_layers=layers_in_conv,
-            num_edge_types=num_edge_types,
-            num_node_types=num_node_types,
-            aggr=neighbors_aggr,
-            edge_in_size=edge_in_dim,
-            use_nodetype_coeffs=False,
-            use_jumping_knowledge=False,
-            use_bias_for_update=True,
-            node_in_dim=channels,
+        self.gat2 = GATv2Conv(
+            in_channels=channels,
+            out_channels=channels // heads,  # concat=True 时 head*out = channels
+            heads=heads,
+            concat=True,
+            edge_dim=edge_in_dim,            # 关键：把 (距离/角度/原始边) 送进注意力
+            dropout=0.1,                     # 注意力 dropout
+            add_self_loops=True
         )
+
+        self.bn_gat2 = nn.BatchNorm1d(channels)
+        self.res_gat2 = nn.Linear(channels, channels, bias=False)  # 可选残差对齐（若维度一致也可直接恒等）
 
         self.mggc3 = SimpleGatedGraphConv(
             out_channels=channels,
@@ -128,20 +134,27 @@ class GatedGCNModel(torch.nn.Module):
     def forward(self, data):
         x, edge_index, edge_attr, pos, batch = data.x, data.edge_index, data.edge_attr, data.pos, data.batch
 
-        # === 用几何编码器增强边特征 ===
-        edge_attr_g = self.geom(pos, edge_index, edge_attr)  # [E, 4+K] or [E,K]
+        # (1) 距离 RBF（+原始边）
+        edge_rbf = self.geom(pos, edge_index, edge_attr)  # [E, 4+K] 或 [E, K]
 
-        x = self.mggc1(x, edge_index, edge_attr_g)
-        x = self.batch_norms[0](x)
-        x = F.relu(x)
+        # (2) 角三元组 → 边增强
+        edge_trip = self.gem_edge(pos, edge_index)        # [E, gem_out]
 
-        x = self.mggc2(x, edge_index, edge_attr_g)
-        x = self.batch_norms[1](x)
-        x = F.relu(x)
+        # (3) 拼接成最终边特征
+        edge_attr_all = torch.cat([edge_rbf, edge_trip], dim=-1)  # [E, base_dim + gem_out]
 
-        x = self.mggc3(x, edge_index, edge_attr_g)
-        x = self.batch_norms[2](x)
+        # block-1: 仍用门控卷积
+        x = self.mggc1(x, edge_index, edge_attr_all); x = self.batch_norms[0](x); x = F.relu(x)
+
+        # block-2: GATv2（带边特征）
+        x_res = x
+        x = self.gat2(x, edge_index, edge_attr_all)         # [N, channels]
+        x = self.bn_gat2(x)
         x = F.relu(x)
+        x = x + self.res_gat2(x_res) 
+
+        # block-3: 仍用门控卷积
+        x = self.mggc3(x, edge_index, edge_attr_all); x = self.batch_norms[2](x); x = F.relu(x)
 
         x_1 = self.set2set(x, batch)
 

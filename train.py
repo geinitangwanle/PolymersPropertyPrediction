@@ -104,7 +104,7 @@ import os, logging, datetime, json
 import torch
 import torch.nn as nn
 from torch_geometric.loader import DataLoader
-from Model.ConvModel import GatedGCNModel
+from Model.Modelv3withAtt.ConvModelV3 import GatedGCNModel
 
 # ========= 日志配置 =========
 run_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
