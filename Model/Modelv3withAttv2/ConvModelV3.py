@@ -1,3 +1,4 @@
+# ConvModel.py 2025/09/23
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -7,7 +8,7 @@ from torch_geometric.nn import global_mean_pool
 from .geom_feats import GeometryFeaturizer
 from .gemnet_edge_update import GemNetEdgeUpdate
 from .EdgeAttention import EdgeAttention
-
+# 使用了自定义的边注意力机制
 class GatedGCNModel(torch.nn.Module):
     def __init__(
         self,

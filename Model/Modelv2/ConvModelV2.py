@@ -1,3 +1,4 @@
+# ConvModelV3.py 2025/09/21
 # 使用了pos信息计算了原子间距离的RBF
 import torch
 from torch import nn

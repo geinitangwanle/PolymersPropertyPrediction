@@ -1,3 +1,4 @@
+# ConvModelV3.py 2025/09/21
 import torch
 from torch import nn
 import torch.nn.functional as F
