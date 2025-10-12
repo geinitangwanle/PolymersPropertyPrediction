@@ -4,7 +4,6 @@
 
 **GCN+GAT** 
 
-![Pipeline](output.png)
 
 ## Features
 
@@ -125,5 +124,7 @@ python predict.py \
 
 * The machine learning models use the embedding made by PolyBERT as input, and the Tg as labels to do the prediction. 
 * All the models(including the GCNModel) perform at the same dataset and spliting
+
+![Pipeline](output.png)
 
 ## License
