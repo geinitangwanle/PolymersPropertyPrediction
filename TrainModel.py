@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TrainModel.py - Command-line training script converted from the user's notebook.
+python TrainModel.py - Command-line training script converted from the user's notebook.
 Usage example:
 python TrainModel.py \
   --data_path ./graph_npz/manifest.csv \
