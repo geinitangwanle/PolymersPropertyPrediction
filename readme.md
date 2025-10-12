@@ -120,7 +120,7 @@ python predict.py \
 | SVR                | Test | 4418.71  | 66.47  | 51.92 | 0.6378  |
 | Neural Network     | Test | 1896.81  | 43.55  | 29.35 | 0.8445  |
 | XGBoost            | Test | 2105.86  | 45.89  | 32.53 | 0.8274  |
-| GCNModel           | Test | —        | 38.31  | 25.88 | 0.8840  |
+| GCNModel           | Test | 1467.66  | 38.31  | 25.88 | 0.8840  |
 
 * The machine learning models use the embedding made by PolyBERT as input, and the Tg as labels to do the prediction. 
 * All the models(including the GCNModel) perform at the same dataset and spliting
