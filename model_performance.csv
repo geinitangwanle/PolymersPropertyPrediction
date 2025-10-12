@@ -1,0 +1,10 @@
+Model,Set,MSE,RMSE,MAE,R2
+Linear Regression,Test,2328.74,48.26,34.89,0.8091
+Ridge Regression,Test,2480.93,49.81,36.7,0.7966
+ElasticNet,Test,10908.86,104.45,87.94,0.1058
+Random Forest,Test,2323.49,48.2,34.4,0.8095
+Gradient Boosting,Test,2617.66,51.16,38.28,0.7854
+SVR,Test,4418.71,66.47,51.92,0.6378
+Neural Network,Test,1896.81,43.55,29.35,0.8445
+XGBoost,Test,2105.86,45.89,32.53,0.8274
+GCNModel,Test,,38.31,25.88,0.884
